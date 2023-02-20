@@ -59,7 +59,7 @@ impl Store {
 #[derive(Debug)]
 enum Error {
     ParseError(std::num::ParseIntError),
-    MissingParameters,
+    InvalidParameters,
     QuestionNotFound,
 }
 
@@ -67,7 +67,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Error::ParseError(ref err) => write!(f, "Cannot parse parameter: {}", err),
-            Error::MissingParameters => write!(f, "Missing parameter"),
+            Error::InvalidParameters => write!(f, "Parameters are invalid"),
             Error::QuestionNotFound => write!(f, "Question not found"),
         }
     }
@@ -115,7 +115,7 @@ fn extract_pagination(params: HashMap<String, String>) -> Result<Pagination, Err
         });
     }
 
-    Err(Error::MissingParameters)
+    Err(Error::InvalidParameters)
 }
 
 fn is_valid_params_pattern(params: &HashMap<String, String>) -> bool {
@@ -165,9 +165,9 @@ async fn update_question(
 }
 
 async fn delete_question(id: String, store: Store) -> Result<impl warp::Reply, warp::Rejection> {
-    match store.questions.write().await.remove(&QuestionId(id)) {
-        Some(_) => return Ok(warp::reply::with_status("Question deleted", StatusCode::OK)),
-        None => return Err(warp::reject::custom(Error::QuestionNotFound)),
+    return match store.questions.write().await.remove(&QuestionId(id)) {
+        Some(_) => Ok(warp::reply::with_status("Question deleted", StatusCode::OK)),
+        None => Err(warp::reject::custom(Error::QuestionNotFound)),
     }
 }
 
