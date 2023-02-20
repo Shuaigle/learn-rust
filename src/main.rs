@@ -45,6 +45,9 @@ struct Store {
 impl Store {
     fn new() -> Self {
         Store {
+            // Atomically Reference Counted
+            // When cloning an Arc, you clone the pointer which points
+            // to the same data structure on the heap
             questions: Arc::new(RwLock::new(Self::init())),
             answers: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -129,6 +132,7 @@ async fn get_questions(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     if !params.is_empty() {
         let pagination = extract_pagination(params)?;
+        // only need to read on read write lock of the contents
         let res: Vec<Question> = store.questions.read().await.values().cloned().collect();
         let res = &res[pagination.start..pagination.end];
         Ok(warp::reply::json(&res))
