@@ -100,7 +100,7 @@ async fn return_error(r: Rejection) -> Result<impl Reply, Rejection> {
 }
 
 fn extract_pagination(params: HashMap<String, String>) -> Result<Pagination, Error> {
-    if params.contains_key("start") && params.contains_key("end") {
+    if is_valid_params_pattern(&params) {
         return Ok(Pagination {
             start: params
                 .get("start")
@@ -116,6 +116,11 @@ fn extract_pagination(params: HashMap<String, String>) -> Result<Pagination, Err
     }
 
     Err(Error::MissingParameters)
+}
+
+fn is_valid_params_pattern(params: &HashMap<String, String>) -> bool {
+    !params.contains_key("start") || !params.contains_key("end")
+    || params.get("start").unwrap() < params.get("end").unwrap()
 }
 
 async fn get_questions(
