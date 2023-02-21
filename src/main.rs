@@ -129,7 +129,7 @@ fn is_valid_params_pattern(params: &HashMap<String, String>) -> bool {
 async fn get_questions(
     params: HashMap<String, String>,
     store: Store,
-) -> Result<impl warp::Reply, warp::Rejection> {
+) -> Result<impl Reply, Rejection> {
     if !params.is_empty() {
         let pagination = extract_pagination(params)?;
         // only need to read on read write lock of the contents
@@ -145,7 +145,7 @@ async fn get_questions(
 async fn add_question(
     store: Store,
     question: Question,
-) -> Result<impl warp::Reply, warp::Rejection> {
+) -> Result<impl Reply, Rejection> {
     store
         .questions
         .write()
@@ -159,7 +159,7 @@ async fn update_question(
     id: String,
     store: Store,
     question: Question,
-) -> Result<impl warp::Reply, warp::Rejection> {
+) -> Result<impl Reply, Rejection> {
     match store.questions.write().await.get_mut(&QuestionId(id)) {
         Some(q) => *q = question,
         None => return Err(warp::reject::custom(Error::QuestionNotFound)),
@@ -168,7 +168,7 @@ async fn update_question(
     Ok(warp::reply::with_status("Question updated", StatusCode::OK))
 }
 
-async fn delete_question(id: String, store: Store) -> Result<impl warp::Reply, warp::Rejection> {
+async fn delete_question(id: String, store: Store) -> Result<impl Reply, Rejection> {
     return match store.questions.write().await.remove(&QuestionId(id)) {
         Some(_) => Ok(warp::reply::with_status("Question deleted", StatusCode::OK)),
         None => Err(warp::reject::custom(Error::QuestionNotFound)),
@@ -178,7 +178,7 @@ async fn delete_question(id: String, store: Store) -> Result<impl warp::Reply, w
 async fn add_answer(
     store: Store,
     params: HashMap<String, String>,
-) -> Result<impl warp::Reply, warp::Rejection> {
+) -> Result<impl Reply, Rejection> {
     let answer = Answer {
         id: AnswerId("1".to_string()),
         content: params.get("content").unwrap().to_string(),
