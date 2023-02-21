@@ -1,10 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use warp::{
-    filters::{body::BodyDeserializeError, cors::CorsForbidden},
     http::Method,
     http::StatusCode,
-    reject::Reject,
     Filter, Rejection, Reply,
 };
 
@@ -59,46 +57,59 @@ impl Store {
     }
 }
 
-#[derive(Debug)]
-enum Error {
-    ParseError(std::num::ParseIntError),
-    InvalidParameters,
-    QuestionNotFound,
-}
+mod error {
+    use warp::{
+        filters::{
+            body::BodyDeserializeError,
+            cors::CorsForbidden,
+        },
+        reject::Reject,
+        Rejection,
+        Reply,
+        http::StatusCode,
+    };
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Error::ParseError(ref err) => write!(f, "Cannot parse parameter: {}", err),
-            Error::InvalidParameters => write!(f, "Parameters are invalid"),
-            Error::QuestionNotFound => write!(f, "Question not found"),
+    #[derive(Debug)]
+    pub enum Error {
+        ParseError(std::num::ParseIntError),
+        InvalidParameters,
+        QuestionNotFound,
+    }
+
+    impl std::fmt::Display for Error {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            match *self {
+                Error::ParseError(ref err) => write!(f, "Cannot parse parameter: {}", err),
+                Error::InvalidParameters => write!(f, "Parameters are invalid"),
+                Error::QuestionNotFound => write!(f, "Question not found"),
+            }
         }
     }
-}
 
-impl Reject for Error {}
+    impl Reject for Error {}
 
-async fn return_error(r: Rejection) -> Result<impl Reply, Rejection> {
-    if let Some(error) = r.find::<Error>() {
-        Ok(warp::reply::with_status(
-            error.to_string(),
-            StatusCode::RANGE_NOT_SATISFIABLE,
-        ))
-    } else if let Some(error) = r.find::<CorsForbidden>() {
-        Ok(warp::reply::with_status(
-            error.to_string(),
-            StatusCode::FORBIDDEN,
-        ))
-    } else if let Some(error) = r.find::<BodyDeserializeError>() {
-        Ok(warp::reply::with_status(
-            error.to_string(),
-            StatusCode::UNPROCESSABLE_ENTITY,
-        ))
-    } else {
-        Ok(warp::reply::with_status(
-            "Route not found".to_string(),
-            StatusCode::NOT_FOUND,
-        ))
+    pub async fn return_error(r: Rejection) -> Result<impl Reply, Rejection> {
+        if let Some(error) = r.find::<Error>() {
+            Ok(warp::reply::with_status(
+                error.to_string(),
+                StatusCode::RANGE_NOT_SATISFIABLE,
+            ))
+        } else if let Some(error) = r.find::<CorsForbidden>() {
+            Ok(warp::reply::with_status(
+                error.to_string(),
+                StatusCode::FORBIDDEN,
+            ))
+        } else if let Some(error) = r.find::<BodyDeserializeError>() {
+            Ok(warp::reply::with_status(
+                error.to_string(),
+                StatusCode::UNPROCESSABLE_ENTITY,
+            ))
+        } else {
+            Ok(warp::reply::with_status(
+                "Route not found".to_string(),
+                StatusCode::NOT_FOUND,
+            ))
+        }
     }
 }
 
@@ -109,16 +120,16 @@ fn extract_pagination(params: HashMap<String, String>) -> Result<Pagination, Err
                 .get("start")
                 .unwrap()
                 .parse::<usize>()
-                .map_err(Error::ParseError)?,
+                .map_err(error::Error::ParseError)?,
             end: params
                 .get("end")
                 .unwrap()
                 .parse::<usize>()
-                .map_err(Error::ParseError)?,
+                .map_err(error::Error::ParseError)?,
         });
     }
 
-    Err(Error::InvalidParameters)
+    Err(error::Error::InvalidParameters)
 }
 
 fn is_valid_params_pattern(params: &HashMap<String, String>) -> bool {
@@ -252,7 +263,7 @@ async fn main() {
         .or(add_answer)
         .or(delete_question)
         .with(cors)
-        .recover(return_error);
+        .recover(error::return_error);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
