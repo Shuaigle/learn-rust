@@ -113,7 +113,7 @@ mod error {
     }
 }
 
-fn extract_pagination(params: HashMap<String, String>) -> Result<Pagination, Error> {
+fn extract_pagination(params: HashMap<String, String>) -> Result<Pagination, error::Error> {
     if is_valid_params_pattern(&params) {
         return Ok(Pagination {
             start: params
@@ -173,7 +173,7 @@ async fn update_question(
 ) -> Result<impl Reply, Rejection> {
     match store.questions.write().await.get_mut(&QuestionId(id)) {
         Some(q) => *q = question,
-        None => return Err(warp::reject::custom(Error::QuestionNotFound)),
+        None => return Err(warp::reject::custom(error::Error::QuestionNotFound)),
     }
 
     Ok(warp::reply::with_status("Question updated", StatusCode::OK))
@@ -182,7 +182,7 @@ async fn update_question(
 async fn delete_question(id: String, store: Store) -> Result<impl Reply, Rejection> {
     return match store.questions.write().await.remove(&QuestionId(id)) {
         Some(_) => Ok(warp::reply::with_status("Question deleted", StatusCode::OK)),
-        None => Err(warp::reject::custom(Error::QuestionNotFound)),
+        None => Err(warp::reject::custom(error::Error::QuestionNotFound)),
     }
 }
 
