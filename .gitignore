@@ -1,1 +1,3 @@
-/target
+/target/*
+handle-errors/target/*
+.idea/
