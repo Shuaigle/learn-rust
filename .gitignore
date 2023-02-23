@@ -1,3 +1,4 @@
 /target/*
 handle-errors/target/*
-.idea/
+.idea/*
+*.iml
